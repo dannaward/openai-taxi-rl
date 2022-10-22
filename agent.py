@@ -1,4 +1,5 @@
 import random
+from collections import defaultdict
 
 import numpy as np
 
@@ -10,9 +11,20 @@ class Agent:
         self.mode = mode
         self.n_actions = 6
 
-        self.epsilon = 0
-        self.gamma = 1.0
-        self.alpha = 0.2
+        if mode == "q_learning":
+            self.epsilon = 0
+            self.gamma = 1.0
+            self.alpha = 0.2
+        elif mode == "mc_control":
+            self.epsilon = 0.05
+            self.alpha = 0.05
+            self.gamma = 0.9
+            self.episode = list()
+            self.k = 1
+        elif mode == "test_mode":
+            self.epsilon = 0
+            self.gamma = 1.0
+            self.alpha = 0.2
 
     def select_action(self, state):
         """
@@ -24,11 +36,13 @@ class Agent:
         =======
         - action: an integer, compatible with the task's action space
         """
+        if self.mode == "mc_control":
+            self.epsilon = 1 / self.k
 
-        if self.mode == "q_learning":
-            return self.q_learning_select_action(state)
-        elif self.mode == "mc_control":
-            return self.mc_control_select_action(state)
+        if random.random() > self.epsilon:
+            return np.argmax(self.Q[state])
+        else:
+            return random.choice(np.arange(self.n_actions))
 
     def step(self, state, action, reward, next_state, done):
 
@@ -47,13 +61,6 @@ class Agent:
         elif self.mode == "mc_control":
             self.mc_control_step(state, action, reward, next_state, done)
 
-    def q_learning_select_action(self, state):
-        action = self.epsilon_greedy(self.Q, state, self.epsilon)
-        return action
-
-    def mc_control_select_action(self, state):
-        pass
-
     def q_learning_step(self, state, action, reward, next_state, done):
         next_action = self.select_action(state)
 
@@ -64,10 +71,13 @@ class Agent:
         self.Q[state][action] = new_value
 
     def mc_control_step(self, state, action, reward, next_state, done):
-        pass
-
-    def epsilon_greedy(self, Q, state, epsilon):
-        if random.random() > epsilon:
-            return np.argmax(Q[state])
+        if done:
+            G = 0
+            for state, action, reward in reversed(self.episode):
+                G = reward + self.gamma * G
+                current_value = self.Q[state][action]
+                self.Q[state][action] = current_value + self.alpha * (G - current_value)
+            self.episode = []
+            self.k += 0.001
         else:
-            return random.choice(np.arange(self.n_actions))
+            self.episode.append((state, action, reward))
