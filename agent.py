@@ -11,20 +11,16 @@ class Agent:
         self.mode = mode
         self.n_actions = 6
 
+        self.epsilon = 0
+
         if mode == "q_learning":
-            self.epsilon = 0
             self.gamma = 1.0
             self.alpha = 0.2
         elif mode == "mc_control":
-            self.epsilon = 0.05
             self.alpha = 0.05
             self.gamma = 0.9
             self.episode = list()
             self.k = 1
-        elif mode == "test_mode":
-            self.epsilon = 0
-            self.gamma = 1.0
-            self.alpha = 0.2
 
     def select_action(self, state):
         """
