@@ -1,6 +1,4 @@
 import random
-from collections import defaultdict
-
 import numpy as np
 
 
@@ -18,9 +16,10 @@ class Agent:
             self.gamma = 1.0
         elif mode == "mc_control":
             self.alpha = 0.05
-            self.gamma = 0.9
+            self.gamma = 0.95
             self.episode = []
-            self.k = 1
+            self.epsilon_var = 1
+            self.G = 0
 
     def select_action(self, state):
         """
@@ -33,7 +32,7 @@ class Agent:
         - action: an integer, compatible with the task's action space
         """
         if self.mode == "mc_control":
-            self.epsilon = 1 / self.k
+            self.epsilon = 1 / self.epsilon_var
 
         if random.random() > self.epsilon:
             return np.argmax(self.Q[state])
@@ -71,12 +70,17 @@ class Agent:
 
     def mc_control_step(self, state, action, reward, next_state, done):
         if done:
-            G = 0
             for state, action, reward in reversed(self.episode):
-                G = reward + self.gamma * G
-                current_value = self.Q[state][action]
-                self.Q[state][action] = current_value + self.alpha * (G - current_value)
-            self.episode = []
-            self.k += 0.001
+                current = self.Q[state][action]
+
+                self.G = reward + self.gamma * self.G
+                updated_value = current + self.alpha * (self.G - current)
+
+                self.Q[state][action] = updated_value
+
+            self.episode.clear()
+            self.epsilon_var += 0.001
+            self.G = 0
+
         else:
             self.episode.append((state, action, reward))
