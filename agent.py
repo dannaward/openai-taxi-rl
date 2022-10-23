@@ -14,12 +14,12 @@ class Agent:
         self.epsilon = 0
 
         if mode == "q_learning":
-            self.gamma = 1.0
             self.alpha = 0.2
+            self.gamma = 1.0
         elif mode == "mc_control":
             self.alpha = 0.05
             self.gamma = 0.9
-            self.episode = list()
+            self.episode = []
             self.k = 1
 
     def select_action(self, state):
@@ -58,13 +58,16 @@ class Agent:
             self.mc_control_step(state, action, reward, next_state, done)
 
     def q_learning_step(self, state, action, reward, next_state, done):
-        next_action = self.select_action(state)
-
         current = self.Q[state][action]
-        Qsa_next = np.max(self.Q[next_state]) if next_state is not None else 0
-        target = reward + (self.gamma * Qsa_next)
-        new_value = current + (self.alpha * (target - current))
-        self.Q[state][action] = new_value
+
+        if next_state:
+            next_q = np.max(self.Q[next_state])
+        else:
+            next_q = 0
+
+        updated_value = current + (self.alpha * (reward + self.gamma * next_q - current))
+
+        self.Q[state][action] = updated_value
 
     def mc_control_step(self, state, action, reward, next_state, done):
         if done:
